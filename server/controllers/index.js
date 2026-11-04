@@ -2,8 +2,87 @@
 const models = require('../models');
 
 // get the Cat and Dog models
-const { Cat } = models;
-const { Dog } = models;
+const { Cat,Dog } = models;
+
+const createDog = async (req,res) => {
+  if(!req.body.name || !req.body.breed || !req.body.age) {
+    return res.status(400).json({
+      error: 'Name, breed, and age are all required',
+      id: 'MissingParams'
+    });
+  }
+
+  const age = Number(req.body.age);
+
+  if(!Number.isFinite(age) || age < 0) {
+    return res.status(400).json({
+      error: 'Age must be a valid non-negative number',
+      id: 'InvalidNum'
+    });
+  }
+
+  const dogData = {
+    name: req.body.name,
+    breed: req.body.breed,
+    age,
+  };
+
+  const newDog = new Dog(dogData);
+
+  try{
+    await newDog.save();
+
+    return res.status(201).json({
+      message: 'dog was created successfully',
+      name: newDog.name,
+      breed: newDog.breed,
+      age: newDog.age,
+    });
+  }catch(err){
+    console.log(err);
+    return res.status(500).json({
+      error: 'failed to create dog',
+      id: 'DataUploadFail'
+    });
+  };
+};
+
+const increaseDogAge = async (req,res) => {
+  if(!req.body.name){
+    return res.status(400).json({
+      error: 'A dog name is required',
+      id: 'MissingParams'
+    })
+  }
+
+  try {
+    const dog = await Dog.findOneAndUpdate(
+      {name: req.body.name},
+      {$inc: {age: 1}},
+      {returnDocument: 'after'}
+    ).lean().exec();
+
+    if(!dog) {
+      return res.status(404).json({
+        error: 'Dog does not exist',
+        id: 'InvalidName'
+      });
+    }
+
+    return res.json({
+      message: 'Doge age increased successfully',
+      name: dog.name,
+      age: dog.age,
+    });
+  } catch(err){
+    console.log(err);
+
+    return res.status(500).json({
+      error: 'Something went wrong updating dog age',
+      id: 'ServerError'
+    });
+  }
+}
 
 // Function to handle rendering the index page.
 const hostIndex = async (req, res) => {
